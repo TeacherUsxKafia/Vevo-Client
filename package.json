@@ -1,0 +1,22 @@
+{
+  "name": "vevo-client",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "High performance krunker client built for Vevo clan",
+  "keywords": ["browser-game", "vevo", "krunker", "krunker-client", "krunkerio"],
+  "author": "Vevo Clan",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --portable"
+  },
+  "dependencies": {
+    "marked": "^18.0.9"
+  },
+  "devDependencies": {
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.0"
+  }
+}
