@@ -39,7 +39,6 @@ pub mod modules {
     #[cfg(target_os = "linux")]
     pub use crate::linux::gpu;
     pub mod hotkeys;
-    pub mod icons;
     #[cfg(windows)]
     pub mod input;
     #[cfg(target_os = "linux")]
