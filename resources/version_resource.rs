@@ -1,48 +1,59 @@
-use std::{env, fs};
-extern crate embed_resource;
-extern crate toml;
+// VERSIONINFO helper for the exe and DLLs
 
-include!("resources/version_resource.rs");
+const COMPANY: &str = "NullDev e.U.";
+#[allow(dead_code)]
+const VFT_APP: &str = "0x1L";
+#[allow(dead_code)]
+const VFT_DLL: &str = "0x2L";
 
-fn main() {
-    embed_resource::compile("./resources/client.rc", embed_resource::NONE).manifest_optional().ok();
-    if let Err(e) = embed_resource::compile("./resources/vevo-manifest.rc", embed_resource::NONE).manifest_required() {
-        eprintln!("{}", e)
-    };
+#[allow(dead_code)]
+fn client_version(cargo_toml: &str) -> String {
+    let content = std::fs::read_to_string(cargo_toml).unwrap();
+    let toml: toml::Value = toml::from_str(&content).unwrap();
+    toml["package"]["version"].as_str().unwrap().to_string()
+}
 
-    let toml_content = fs::read_to_string("Cargo.toml").unwrap();
-    let toml: toml::Value = toml::from_str(&toml_content).unwrap();
-    let package_version = toml["package"]["version"].as_str().unwrap();
-    let js_bundle_version = toml["package"]["metadata"]["js_bundle_version"].as_str().unwrap();
-    let description = toml["package"]["description"].as_str().unwrap();
+fn embed_version_resource(version: &str, product: &str, description: &str, file_name: &str, file_type: &str) {
+    let numbers = version
+        .split(['.', '-', '+'])
+        .map(|part| part.parse::<u16>().unwrap_or(0))
+        .chain([0, 0, 0, 0])
+        .take(4)
+        .map(|number| number.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
 
-    embed_version_resource(package_version, "Vevo", description, "vevo.exe", VFT_APP);
+    let internal_name = file_name.rsplit_once('.').map(|(stem, _)| stem).unwrap_or(file_name);
+    let resource = format!(
+        r#"#pragma code_page(65001)
+1 VERSIONINFO
+FILEVERSION {numbers}
+PRODUCTVERSION {numbers}
+FILEOS 0x40004L
+FILETYPE {file_type}
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "{COMPANY}"
+            VALUE "FileDescription", "{description}"
+            VALUE "FileVersion", "{version}"
+            VALUE "InternalName", "{internal_name}"
+            VALUE "OriginalFilename", "{file_name}"
+            VALUE "ProductName", "{product}"
+            VALUE "ProductVersion", "{version}"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+"#
+    );
 
-    let dest_path = env::current_dir().unwrap().join("target/bundle_version");
-    fs::write(dest_path, js_bundle_version).unwrap();
-
-    let wxs_path = "resources/installer_script.wxs";
-    let wxs_content = fs::read_to_string(wxs_path).unwrap();
-    let regex = regex::Regex::new(r#"Version="([^"]+)""#).unwrap();
-
-    let current_version = regex.captures(&wxs_content).and_then(|cap| cap.get(1)).map(|m| m.as_str());
-
-    if current_version != Some(package_version) {
-        let updated_wxs = regex.replace(&wxs_content, format!(r#"Version="{}""#, package_version)).to_string();
-        fs::write(wxs_path, updated_wxs).unwrap();
-    }
-
-    if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("linux") {
-        println!("cargo:rustc-link-arg-bins=-Wl,-rpath,$ORIGIN");
-    }
-
-    println!("cargo:rerun-if-changed=Cargo.toml");
-    println!("cargo:rerun-if-changed=resources/vevo.exe.manifest");
-    println!("cargo:rerun-if-changed=resources/comctl6.manifest");
-    println!("cargo:rerun-if-changed=resources/vevo-manifest.rc");
-    println!("cargo:rerun-if-changed=resources/client.rc");
-    println!("cargo:rerun-if-changed=resources/version_resource.rs");
-    println!("cargo:rerun-if-changed=resources/vevo.ico");
-    println!("cargo:rerun-if-changed=resources/installer_script.wxs");
-    println!("cargo:rerun-if-changed=target/bundle.js");
+    let path = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("version.rc");
+    std::fs::write(&path, resource).unwrap();
+    embed_resource::compile(&path, embed_resource::NONE);
 }
