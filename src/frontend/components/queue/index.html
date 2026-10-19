@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en-US">
+	<head>
+		<title>External Queue</title>
+		<style>
+		* {
+			user-select: none;
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		body {
+			font-family: "Trebuchet MS", sans-serif;
+			background: #0d0d0d;
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #e0e0e0;
+			overflow: hidden;
+		}
+		#closeButton {
+			position: absolute;
+			right: 0;
+			top: 0;
+			margin: 10px 20px 0 0;
+			font-size: 20px;
+			cursor: pointer;
+		}
+		.queuer-container {
+			position: relative;
+			background: #1a1a1a;
+			padding: 40px 52px;
+			max-width: 1000px;
+			width: 90vw;
+			border: 2px solid #2a2a2a;
+			border-top: 3px solid #06b6d4;
+			box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+			border-radius: 4px;
+		}
+		.main-content {
+			display: flex;
+			align-items: center;
+			gap: 56px;
+		}
+		.left-section {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			gap: 24px;
+		}
+		.status-area {
+			display: flex;
+			align-items: center;
+			gap: 14px;
+			position: relative;
+			padding-left: 18px;
+		}
+		.status-area::before {
+			content: "";
+			position: absolute;
+			left: 0;
+			width: 8px;
+			height: 8px;
+			background: #666;
+			border-radius: 50%;
+			transition: background 0.3s ease;
+		}
+		.status-area.active::before {
+			background: #06b6d4;
+			box-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
+		}
+		#queueStatus {
+			font-size: 14px;
+			font-weight: 600;
+			color: #666;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			transition: color 0.3s ease;
+		}
+		#queueStatus.active {
+			color: #06b6d4;
+		}
+		.timer-display {
+			font-size: 52px;
+			font-weight: 700;
+			color: #fff;
+			font-variant-numeric: tabular-nums;
+			letter-spacing: 0.5px;
+			padding: 12px 16px;
+			background: #222;
+			border-left: 3px solid #06b6d4;
+			border-radius: 2px;
+		}
+		.region-controls {
+			display: flex;
+			gap: 12px;
+		}
+		.region-option {
+			position: relative;
+		}
+		.region-option input {
+			display: none;
+		}
+		.region-option label {
+			display: block;
+			padding: 12px 24px;
+			background: #222;
+			border: 2px solid #2d2d2d;
+			border-radius: 4px;
+			color: #888;
+			font-size: 16px;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+			cursor: pointer;
+			transition: all 0.2s ease;
+		}
+		.region-option label:hover {
+			background: #2a2a2a;
+			border-color: #3a3a3a;
+		}
+		.region-option input:checked + label {
+			background: rgba(6, 182, 212, 0.1);
+			border-color: #06b6d4;
+			color: #06b6d4;
+		}
+		.divider {
+			width: 1px;
+			height: 120px;
+			background: #2a2a2a;
+			position: relative;
+		}
+		.right-section {
+			display: flex;
+			flex-direction: column;
+			gap: 14px;
+		}
+		.btn {
+			padding: 16px 42px;
+			border: 2px solid transparent;
+			font-size: 20px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			font-family: "Trebuchet MS", sans-serif;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			border-radius: 4px;
+		}
+		.btn:disabled {
+			opacity: 0.4;
+			cursor: not-allowed;
+		}
+		.btn-secondary {
+			background: #222;
+			color: #999;
+			border-color: #2a2a2a;
+		}
+		.btn-secondary:hover:not(:disabled) {
+			background: #2a2a2a;
+			border-color: #3a3a3a;
+		}
+		.btn-primary {
+			background: #06b6d4;
+			color: #fff;
+			border-color: #06b6d4;
+		}
+		.btn-primary:hover:not(:disabled) {
+			background: #0ea5ca;
+			border-color: #0ea5ca;
+		}
+		.btn-primary:active:not(:disabled) {
+			transform: scale(0.98);
+		}
+		.btn-primary.in-queue {
+			background: #222;
+			border-color: #06b6d4;
+			color: #06b6d4;
+		}
+		.btn-primary.in-queue:hover:not(:disabled) {
+			background: rgba(6, 182, 212, 0.1);
+		}
+		.overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0, 0, 0, 0.9);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			opacity: 0;
+			visibility: hidden;
+			transition: all 0.3s ease;
+			z-index: 1000;
+		}
+		.overlay.active {
+			opacity: 1;
+			visibility: visible;
+		}
+		.popup {
+			background: #1a1a1a;
+			border: 2px solid #2a2a2a;
+			border-top: 3px solid #06b6d4;
+			max-width: 560px;
+			width: 90vw;
+			box-shadow: 0 12px 48px rgba(0, 0, 0, 0.8);
+			position: relative;
+			text-align: center;
+			transform: scale(0.95);
+			transition: transform 0.3s ease;
+			border-radius: 4px;
+		}
+		.overlay.active .popup {
+			transform: scale(1);
+		}
+		.popup h2 {
+			margin-top: 12px;
+			font-size: 32px;
+			font-weight: 700;
+			color: #06b6d4;
+			text-transform: uppercase;
+			letter-spacing: 1.5px;
+		}
+		.popup-content {
+			margin: 20px 0;
+		}
+		.popup-content p {
+			font-size: 15px;
+			color: #888;
+			margin-bottom: 12px;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+			font-weight: 600;
+		}
+		.region-found {
+			font-size: 18px;
+			font-weight: 700;
+			color: #fff;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			display: inline-block;
+			padding: 12px 24px;
+			background: rgba(6, 182, 212, 0.15);
+			border: 2px solid #06b6d4;
+			border-radius: 4px;
+		}
+		.countdown-large {
+			font-size: 48px;
+			font-weight: 700;
+			color: #06b6d4;
+			margin: 16px 0;
+			font-variant-numeric: tabular-nums;
+			line-height: 1;
+		}
+		.popup-buttons {
+			display: flex;
+			gap: 14px;
+			margin-top: 40px;
+		}
+		.popup-buttons .btn {
+			flex: 1;
+		}
+		.close-icon {
+			position: absolute;
+			top: 20px;
+			right: 20px;
+			background: transparent;
+			border: none;
+			cursor: pointer;
+			font-size: 28px;
+			color: #555;
+			transition: color 0.2s ease;
+			line-height: 1;
+		}
+		.close-icon:hover {
+			color: #06b6d4;
+		}
+		.map-panel {
+			background: #1a1a1a;
+			border: 2px solid #2a2a2a;
+			border-top: 3px solid #06b6d4;
+			border-radius: 4px;
+			padding: 32px;
+			max-width: 1100px;
+			width: 90vw;
+			max-height: 85vh;
+			overflow-y: auto;
+			box-shadow: 0 12px 48px rgba(0, 0, 0, 0.8);
+			transform: scale(0.95);
+			transition: transform 0.3s ease;
+		}
+		.overlay.active .map-panel {
+			transform: scale(1);
+		}
+		.map-panel h2 {
+			font-size: 26px;
+			font-weight: 700;
+			text-align: center;
+			margin-bottom: 28px;
+			color: #fff;
+			text-transform: uppercase;
+			letter-spacing: 1.5px;
+		}
+		.map-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+			gap: 12px;
+		}
+		.map-item {
+			background: #222;
+			border: 2px solid #2d2d2d;
+			border-radius: 4px;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			text-align: center;
+			overflow: hidden;
+			position: relative;
+			aspect-ratio: 21 / 9;
+		}
+		.map-item:hover {
+			background: #2a2a2a;
+			border-color: #3a3a3a;
+		}
+		#matchFoundMessage {
+			margin-top: 12px;
+			font-size: 20px;
+			color: #fff;
+			text-align: center;
+			justify-self: center;
+			width: 400px;
+		}
+
+		.map-item.selected {
+			background: rgba(6, 182, 212, 0.1);
+			border-color: #06b6d4;
+		}
+		.map-item img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			display: block;
+			filter: grayscale(100%);
+			transition: filter 0.3s ease;
+		}
+		.map-item.selected img {
+			filter: grayscale(0%);
+		}
+		.map-item span {
+			position: absolute;
+			bottom: 8px;
+			left: 50%;
+			transform: translateX(-50%);
+			font-size: 14px;
+			font-weight: 600;
+			color: #fff;
+			letter-spacing: 0.5px;
+			text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+			z-index: 3;
+		}
+		.map-item.selected span {
+			color: #fff;
+		}
+		.map-panel::-webkit-scrollbar {
+			width: 8px;
+		}
+		.map-panel::-webkit-scrollbar-track {
+			background: #1a1a1a;
+		}
+		.map-panel::-webkit-scrollbar-thumb {
+			background: #333;
+		}
+		.map-panel::-webkit-scrollbar-thumb:hover {
+			background: #444;
+		}
+		</style>
+	</head>
+	<body>
+		<div class="queuer-container">
+			<div class="main-content">
+				<div class="left-section">
+					<div class="status-area" id="statusArea">
+						<span id="queueStatus">Ready</span>
+					</div>
+					<div class="timer-display" id="queueTimerDisplay">00:00:00</div>
+					<div class="region-controls" id="regionCheckboxes">
+						<div class="region-option">
+							<input type="checkbox" id="na" value="na">
+							<label for="na">NA</label>
+						</div>
+						<div class="region-option">
+							<input type="checkbox" id="eu" value="eu">
+							<label for="eu">EU</label>
+						</div>
+						<div class="region-option">
+							<input type="checkbox" id="as" value="as">
+							<label for="as">Asia</label>
+						</div>
+					</div>
+				</div>
+				<div class="divider"></div>
+				<div class="right-section">
+					<button type="button" class="btn btn-secondary" id="mapSelectorButton" title="broken" disabled>Select Maps</button>
+					<button type="button" class="btn btn-primary" id="queueButton">Start Queue</button>
+				</div>
+			</div>
+		</div>
+		<div class="overlay" id="matchPopupOverlay">
+			<div class="popup">
+				<h2>Match Found</h2>
+				<div class="popup-content">
+					<div id="closeButton">X</div>
+					<div class="region-found" id="foundRegion">Region: </div>
+					<div id="matchFoundMessage">open the client and rejoin the game from the ranked menu</div>
+					<div class="countdown-large" id="countDownTimer">00:00:60</div>
+				</div>
+			</div>
+		</div>
+		<div class="overlay" id="mapSelectorOverlay">
+			<div class="map-panel">
+				<button type="button" class="close-icon" id="closeMapSelector">×</button>
+				<h2>Select Maps</h2>
+				<div class="map-grid" id="mapGrid"></div>
+			</div>
+		</div>
+	</body>
+</html>

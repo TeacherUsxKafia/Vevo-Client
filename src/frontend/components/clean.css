@@ -1,0 +1,12 @@
+/* ads, promos and hints only, never the logo, a button or match info */
+#tlInfHold,
+#newsHolder,
+#termsInfo,
+#bubbleContainer {
+	display: none !important;
+}
+
+/* krunker's own .popRail.svelte-* rule sets display: block !important */
+body .popRail.popRail {
+	display: none !important;
+}

@@ -1,0 +1,49 @@
+#chatList > * {
+	display: block !important;
+}
+
+#chatInputHolder {
+	opacity: 1;
+	transition:
+		opacity 0.2s ease-in-out,
+		transform 0.2s ease-in-out;
+}
+
+#chatList::-webkit-scrollbar {
+	display: none;
+}
+
+#chatList {
+	transition: margin-bottom 0.2s ease-in-out;
+}
+
+#uiBase.onGame #chatList {
+	margin-bottom: -50px;
+}
+
+#uiBase.onMenu #chatInputHolder {
+	transition: none;
+}
+
+#uiBase.onGame #chatInputHolder {
+	opacity: 0;
+	transform: translateY(50px);
+}
+
+#uiBase.onGame #chatHolder:focus-within #chatInputHolder {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+#uiBase.onGame #chatHolder:focus-within #chatList {
+	margin-bottom: 0;
+}
+
+#uiBase.onSpect #chatInputHolder {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+#uiBase.onSpect #chatList {
+	margin-bottom: 0;
+}

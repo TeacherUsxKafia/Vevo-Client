@@ -1,0 +1,103 @@
+<style>
+#nkOptions {
+	box-sizing: border-box;
+	width: 400px;
+	max-width: 92vw;
+	max-height: 88vh;
+	overflow-y: auto;
+	padding: 1.8em 2.2em 1.4em 2.2em;
+	background: #1e1e1e;
+	color: #fff;
+	border-radius: 14px;
+	box-shadow: 0 8px 48px #000c;
+	font-family: Consolas, monospace;
+}
+
+#nkOptions h2 {
+	margin: 0 0 0.3em 0;
+	font-size: 1.6em;
+	letter-spacing: 1px;
+	color: #35e0e8;
+	text-align: center;
+}
+
+#nkHint {
+	margin-bottom: 1.2em;
+	color: #999;
+	text-align: center;
+}
+
+.nkRow {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin: 0.4em 0;
+	color: #ccc;
+}
+
+.nkRow input[type="number"] {
+	width: 5em;
+	padding: 0.3em 0.5em;
+	border: none;
+	border-radius: 6px;
+	background: #2a2a2a;
+	color: #fff;
+	font-family: inherit;
+	text-align: right;
+}
+
+.nkRow input[type="checkbox"] {
+	width: 1.2em;
+	height: 1.2em;
+	accent-color: #35e0e8;
+	cursor: pointer;
+}
+
+#nkPlaceHint {
+	margin-top: 1.2em;
+	color: #888;
+	font-size: 0.9em;
+	text-align: center;
+}
+
+#nkActions {
+	display: flex;
+	gap: 0.7em;
+	margin-top: 0.8em;
+}
+
+.nkButton {
+	flex: 1 1 0;
+	padding: 0.7em 0.5em;
+	border-radius: 8px;
+	background: #2a2a2a;
+	color: #999;
+	text-align: center;
+	cursor: pointer;
+	user-select: none;
+}
+
+.nkButton:hover {
+	background: #333;
+}
+
+#nkDone {
+	background: #1b5e63;
+	color: #fff;
+}
+
+#nkDone:hover {
+	background: #23777d;
+}
+</style>
+<div id="nkOptions">
+	<h2>Nuke Counter</h2>
+	<div id="nkHint">Your nuke total, in game. It updates when a match ends</div>
+	<label class="nkRow">Goal (0 hides it) <input type="number" id="nkGoalInput" min="0" max="1000000" step="1"></label>
+	<label class="nkRow">Background <input type="checkbox" id="nkBackground"></label>
+	<div id="nkPlaceHint">Where it sits and how big it is belongs to the HUD editor</div>
+	<div id="nkActions">
+		<div class="nkButton" id="nkPlace">Place it</div>
+		<div class="nkButton" id="nkDone">Done</div>
+	</div>
+</div>
