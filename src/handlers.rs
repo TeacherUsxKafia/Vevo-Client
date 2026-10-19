@@ -95,10 +95,8 @@ wrap_resource_request_handler! {
                 return ReturnValue::CONTINUE;
             }
 
-            // kute icons answer the player's kute.lol/kr urls locally, that is no contact with the server
             // a file the player swapped in beats our blocklist (muzflash.png, ambient sounds, cats)
             if modules::blocklist::is_blocked(&url)
-                && modules::icons::bytes_for(&url).is_none()
                 && !modules::blocklist::wants_empty_model(&url)
                 && !modules::swapper::has_swap(&url)
             {
@@ -132,9 +130,7 @@ wrap_resource_request_handler! {
                 debug_print!("handlers: empty model for {url}");
                 return modules::resource::serve("text/plain", modules::blocklist::EMPTY_MODEL.as_bytes().to_vec());
             }
-            let bytes = modules::icons::bytes_for(&url)?;
-            debug_print!("handlers: kute icon for {url}");
-            modules::resource::serve("image/png", bytes.to_vec())
+            None
         }
 
         fn resource_response_filter(
@@ -805,14 +801,6 @@ pub fn handle_web_message(browser: &Browser, frame: &Frame, message_string: &str
         debug_print!("web message: {}... ({} bytes)", &message_string[..cut], message_string.len());
     } else {
         debug_print!("web message: {message_string}");
-    }
-    if let Some(rest) = message_string.strip_prefix("icon-urls ") {
-        if rest.len() <= 16 * 1024
-            && let Ok(value) = serde_json::from_str::<serde_json::Value>(rest)
-        {
-            modules::icons::set_player_urls(&value);
-        }
-        return;
     }
     // set-config can't carry objects (matchmaker filter)
     if let Some(rest) = message_string.strip_prefix("set-config-json ") {
