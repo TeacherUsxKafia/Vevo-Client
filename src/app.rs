@@ -143,11 +143,10 @@ pub fn set_window_size(width: u32, height: u32) {
 // after load_flags, before initialize: the gpu process reads it once it presents
 pub fn set_limiter_mode() {
     let mut mode = 0;
-    if feature_enabled("KuteFrameLimiter") {
+    if feature_enabled("VevoFrameLimiter") {
         mode |= LIMITER_VIZ;
     }
-    // KUTE_HR_TIMER=0 brings the old sleep plus spin back (bench key timer=sleep), the hook's own wait only runs without the chromium limiter
-    if env::var("KUTE_HR_TIMER").is_ok_and(|value| value == "0") {
+    if env::var("VEVO_HR_TIMER").is_ok_and(|value| value == "0") {
         // old wait wanted
     } else {
         mode |= LIMITER_HR_TIMER;
@@ -187,14 +186,9 @@ pub fn render_adapter() -> u64 {
     shared!(render_adapter).map(|field| field.load(Ordering::Relaxed)).unwrap_or(0)
 }
 
-// the Present1 hook as the gpu process reports it: "off" (not loaded), "waiting" (no chain has reached it yet),
-// "ready", "failed" (three tries at the first chain, final). mismatch: a chain with another Present1 was seen and left
-// as chromium made it. installUs: what installing took. modifiedChains / stockChains: what chromium got since attach
 pub fn hook_state() -> serde_json::Value {
-    // a bench overrides the setting through the env, like render_hook::load
     #[cfg(windows)]
     let loaded = modules::bench::hook_override().unwrap_or_else(|| *HOOK_AT_START.get().unwrap_or(&true));
-    // patch 10 measures in viz, always on: a clock read per frame, nothing to switch off like the hook
     #[cfg(target_os = "linux")]
     let loaded = true;
     if !loaded {
@@ -215,7 +209,6 @@ pub fn hook_state() -> serde_json::Value {
     })
 }
 
-// (fps, frame_ns) from the present hook
 pub fn render_stats() -> Option<(u64, u64)> {
     Some((shared!(fps)?.load(Ordering::Relaxed), shared!(frame_ns)?.load(Ordering::Relaxed)))
 }
@@ -245,7 +238,6 @@ fn color_profile_switch(option: &str) -> Option<&'static str> {
     }
 }
 
-// the gpu process decides about the hook when it starts, a later change of the setting needs a restart
 pub static HOOK_AT_START: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 
 pub fn load_flags() {
@@ -262,17 +254,13 @@ pub fn load_flags() {
     if let Some(profile) = color_profile_switch(&config("colorProfile", "Default".to_string())) {
         flags.push(format!("--force-color-profile={profile}"));
     }
-    // websockets skip the resource handler, so kute.lol must not even resolve. live toggles are covered by the bundle and blocklist.rs
     if config("disableOnlineFeatures", false) {
-        flags.push("--host-resolver-rules=MAP kute.lol ~NOTFOUND, MAP *.kute.lol ~NOTFOUND".to_string());
+        flags.push("--host-resolver-rules=MAP vevoclient.com ~NOTFOUND, MAP *.vevoclient.com ~NOTFOUND".to_string());
     }
-    // present stats from viz (patch 10), what render.dll's hook measures on windows
     #[cfg(target_os = "linux")]
-    flags.push("--enable-features=KutePresentStats".to_string());
-    // the esc bubble on f11 and pointer lock is an overlay that blocks direct scanout and tearing (patch 11)
+    flags.push("--enable-features=VevoPresentStats".to_string());
     #[cfg(target_os = "linux")]
-    flags.push("--enable-features=KuteNoExclusiveAccessBubble".to_string());
-    // a bench decides its patches itself (bench::flags), the settings decide for the client
+    flags.push("--enable-features=VevoNoExclusiveAccessBubble".to_string());
     if modules::bench::config().is_none() {
         for patch in PATCHES {
             flags.push(patch.flag(config(patch.setting, patch.default)));
@@ -281,23 +269,19 @@ pub fn load_flags() {
     *FLAGS.lock().unwrap() = flags;
 }
 
-// native wayland ties the pacing patch to the compositor's refresh (bench: 177 fps against 1359 on xwayland)
 #[cfg(target_os = "linux")]
 fn use_x11() -> bool {
     config("displayServer", "X11".to_string()) == "X11" && std::env::var_os("DISPLAY").is_some_and(|display| !display.is_empty())
 }
 
-// one libcef patch with a feature switch (patches/README.md), toggled by a setting
 pub struct Patch {
     pub setting: &'static str,
     pub feature: &'static str,
-    // bench config key
     pub key: &'static str,
     pub default: bool,
 }
 
 impl Patch {
-    // explicit either way: chromium lets the disable list win, so a user_flags.json entry cannot re-enable a setting that is off
     pub fn flag(&self, enabled: bool) -> String {
         format!("--{}-features={}", if enabled { "enable" } else { "disable" }, self.feature)
     }
@@ -306,49 +290,49 @@ impl Patch {
 pub const PATCHES: [Patch; 8] = [
     Patch {
         setting: "patchFrameLimiter",
-        feature: "KuteFrameLimiter",
+        feature: "VevoFrameLimiter",
         key: "limiter",
         default: true,
     },
     Patch {
         setting: "patchInputPriority",
-        feature: "KuteInputNormalPriority",
+        feature: "VevoInputNormalPriority",
         key: "inprio",
         default: true,
     },
     Patch {
         setting: "patchFramePacing",
-        feature: "KuteFramePacing",
+        feature: "VevoFramePacing",
         key: "pacing",
         default: true,
     },
     Patch {
         setting: "patchRawInputMovement",
-        feature: "KuteRawInputMovementOnly",
+        feature: "VevoRawInputMovementOnly",
         key: "rawinput",
         default: true,
     },
     Patch {
         setting: "audioFix",
-        feature: "KuteAudioPannerPerQuantum",
+        feature: "VevoAudioPannerPerQuantum",
         key: "panner",
         default: false,
     },
     Patch {
         setting: "patchAudioParamCoalesce",
-        feature: "KuteAudioParamCoalesce",
+        feature: "VevoAudioParamCoalesce",
         key: "coalesce",
         default: true,
     },
     Patch {
         setting: "patchCanvasBufferCache",
-        feature: "KuteCanvasBufferCache",
+        feature: "VevoCanvasBufferCache",
         key: "canvas",
         default: true,
     },
     Patch {
         setting: "patchHighQoS",
-        feature: "KuteHighQoSForeground",
+        feature: "VevoHighQoSForeground",
         key: "qos",
         default: true,
     },
@@ -362,7 +346,6 @@ pub fn has_flag(wanted: &str) -> bool {
     FLAGS.lock().unwrap().iter().any(|flag| flag == wanted)
 }
 
-// --disable-features wins, like in chromium
 pub fn feature_enabled(name: &str) -> bool {
     let listed = |switch: &str| {
         FLAGS
@@ -397,7 +380,6 @@ pub fn prepare_profile() {
         ("autofill.profile_enabled", serde_json::Value::Bool(false)),
         ("autofill.credit_card_enabled", serde_json::Value::Bool(false)),
         ("translate.enabled", serde_json::Value::Bool(false)),
-        // cef's --disable-spell-checking is read nowhere in 151, the pref is what turns it off
         ("browser.enable_spellchecking", serde_json::Value::Bool(false)),
     ];
     for (key, value) in wanted {
@@ -418,7 +400,6 @@ pub fn prepare_profile() {
     }
 }
 
-// one browser process per profile, so bench gets its own
 fn cache_dir() -> std::path::PathBuf {
     if modules::bench::active() {
         modules::bench::profile_dir()
@@ -431,9 +412,7 @@ pub fn settings() -> Settings {
     let cache_dir = cache_dir();
     let log_file = utils::settings_dir().join("cef_debug.log");
     Settings {
-        // a plain exe can't host the sandbox, needs the bootstrap.exe model
         no_sandbox: 1,
-        // browser shaped with an Electron token
         user_agent_product: CefString::from(format!("Chrome/{0}.0.0.0 Electron/{0}.0.0", sys::CHROME_VERSION_MAJOR).as_str()),
         locale: CefString::from("en-US"),
         accept_language_list: CefString::from("en-US,en"),
@@ -447,12 +426,11 @@ pub fn settings() -> Settings {
         } else {
             LogSeverity::DISABLE
         },
-        remote_debugging_port: env::var("KUTE_DEBUG_PORT").ok().and_then(|v| v.parse().ok()).unwrap_or(0),
+        remote_debugging_port: env::var("VEVO_DEBUG_PORT").ok().and_then(|v| v.parse().ok()).unwrap_or(0),
         ..Default::default()
     }
 }
 
-// same storage as the global context, but with our handler (the global one can't have one)
 pub fn request_context() -> Option<RequestContext> {
     let cache_dir = cache_dir();
     let settings = RequestContextSettings {
@@ -461,7 +439,7 @@ pub fn request_context() -> Option<RequestContext> {
         accept_language_list: CefString::from("en-US,en"),
         ..Default::default()
     };
-    let mut handler = handlers::KuteRequestContextHandler::new();
+    let mut handler = handlers::VevoRequestContextHandler::new();
     request_context_create_context(Some(&settings), Some(&mut handler))
 }
 
@@ -474,7 +452,6 @@ pub fn browser_settings() -> BrowserSettings {
     }
 }
 
-// merge with what cef already set
 fn merge_list_switch(cmd: &mut CommandLine, key: &str, value: &str) {
     let name = CefString::from(key);
     let existing = if cmd.has_switch(Some(&name)) != 0 {
@@ -493,7 +470,7 @@ fn merge_list_switch(cmd: &mut CommandLine, key: &str, value: &str) {
 }
 
 wrap_browser_process_handler! {
-    struct KuteBrowserProcessHandler;
+    struct VevoBrowserProcessHandler;
 
     impl BrowserProcessHandler {
         fn on_context_initialized(&self) {
@@ -512,7 +489,6 @@ wrap_browser_process_handler! {
 
             #[cfg(feature = "auto-update")]
             if config("checkUpdates", true) {
-                // a new bundle applies on the next navigation
                 std::thread::spawn(modules::updater::run);
             }
         }
@@ -520,19 +496,18 @@ wrap_browser_process_handler! {
 }
 
 wrap_app! {
-    pub struct KuteApp;
+    pub struct VevoApp;
 
     impl App {
         fn browser_process_handler(&self) -> Option<BrowserProcessHandler> {
-            Some(KuteBrowserProcessHandler::new())
+            Some(VevoBrowserProcessHandler::new())
         }
 
         fn render_process_handler(&self) -> Option<RenderProcessHandler> {
-            Some(renderer::KuteRenderProcessHandler::new())
+            Some(renderer::VevoRenderProcessHandler::new())
         }
 
         fn on_before_command_line_processing(&self, process_type: Option<&CefString>, command_line: Option<&mut CommandLine>) {
-            // subprocesses inherit the switches
             if !process_type.map(|t| t.to_string().is_empty()).unwrap_or(true) {
                 return;
             }
@@ -547,22 +522,17 @@ wrap_app! {
                 }
             }
             cmd.append_switch(Some(&CefString::from("disable-pinch")));
-            // otherwise chromium restores the last session in its own window
             cmd.append_switch(Some(&CefString::from("no-startup-window")));
             cmd.append_switch(Some(&CefString::from("hide-crash-restore-bubble")));
-            // chromium 151 shows a modal terms dialog on a linux first run (MasterPrefs::eula_required defaults to true)
             #[cfg(target_os = "linux")]
             cmd.append_switch(Some(&CefString::from("no-first-run")));
-            // after the flag loop, so an --ozone-platform from the command line or user_flags.json wins
             #[cfg(target_os = "linux")]
             if cmd.has_switch(Some(&CefString::from("ozone-platform"))) == 0 && use_x11() {
                 cmd.append_switch_with_value(Some(&CefString::from("ozone-platform")), Some(&CefString::from("x11")));
             }
-            // on native wayland the pacing patch waits for the compositor's frame feedback, which holds the game at the refresh
-            // rate and keeps hyprland/kwin from tearing. the disable list wins, so this also covers a bench and user_flags.json
             #[cfg(target_os = "linux")]
             if utils::cef_to_string(&cmd.switch_value(Some(&CefString::from("ozone-platform")))) != "x11" {
-                merge_list_switch(cmd, "disable-features", "KuteFramePacing");
+                merge_list_switch(cmd, "disable-features", "VevoFramePacing");
             }
         }
     }
