@@ -75,7 +75,7 @@ wrap_task! {
 }
 
 wrap_resource_request_handler! {
-    struct KuteResourceRequestHandler;
+    struct VevoResourceRequestHandler;
 
     impl ResourceRequestHandler {
         fn on_before_resource_load(
@@ -154,7 +154,7 @@ wrap_resource_request_handler! {
 }
 
 wrap_request_handler! {
-    struct KuteRequestHandler;
+    struct VevoRequestHandler;
 
     impl RequestHandler {
         fn on_before_browse(
@@ -185,7 +185,7 @@ wrap_request_handler! {
             _request_initiator: Option<&CefString>,
             _disable_default_handling: Option<&mut ::std::os::raw::c_int>,
         ) -> Option<ResourceRequestHandler> {
-            Some(KuteResourceRequestHandler::new())
+            Some(VevoResourceRequestHandler::new())
         }
 
         fn on_render_process_terminated(
@@ -198,7 +198,7 @@ wrap_request_handler! {
             let text = format!("renderer ended: {status:?} code {error_code} {}", utils::cef_str(error_string));
             debug_print!("{text}");
             modules::eventlog::push("host", &text);
-            // a kill is kute closing it or the player in the task manager, everything else died on its own
+            // a kill is Vevo closing it or the player in the task manager, everything else died on its own
             if status.get_raw() != TerminationStatus::PROCESS_WAS_KILLED.get_raw() {
                 modules::recovery::renderer_crashed();
             }
@@ -208,7 +208,7 @@ wrap_request_handler! {
 
 // requests without a browser (service worker) only pass through here
 wrap_request_context_handler! {
-    pub struct KuteRequestContextHandler;
+    pub struct VevoRequestContextHandler;
 
     impl RequestContextHandler {
         // chrome style never stores a grant from the permission handler, without this enumerateDevices hides
@@ -230,14 +230,14 @@ wrap_request_context_handler! {
             _request_initiator: Option<&CefString>,
             _disable_default_handling: Option<&mut ::std::os::raw::c_int>,
         ) -> Option<ResourceRequestHandler> {
-            Some(KuteResourceRequestHandler::new())
+            Some(VevoResourceRequestHandler::new())
         }
     }
 }
 
 // page still gets the key
 wrap_keyboard_handler! {
-    struct KuteKeyboardHandler;
+    struct VevoKeyboardHandler;
 
     impl KeyboardHandler {
         fn on_pre_key_event(
@@ -265,7 +265,7 @@ wrap_keyboard_handler! {
 const IDC_CLOSE_WINDOW: ::std::os::raw::c_int = 34012;
 
 wrap_command_handler! {
-    struct KuteCommandHandler;
+    struct VevoCommandHandler;
 
     impl CommandHandler {
         fn on_chrome_command(
@@ -286,7 +286,7 @@ wrap_command_handler! {
 }
 
 wrap_permission_handler! {
-    struct KutePermissionHandler;
+    struct VevoPermissionHandler;
 
     impl PermissionHandler {
         fn on_request_media_access_permission(
@@ -318,7 +318,7 @@ wrap_permission_handler! {
 }
 
 wrap_context_menu_handler! {
-    struct KuteContextMenuHandler;
+    struct VevoContextMenuHandler;
 
     impl ContextMenuHandler {
         fn on_before_context_menu(
@@ -336,7 +336,7 @@ wrap_context_menu_handler! {
 }
 
 wrap_download_handler! {
-    struct KuteDownloadHandler;
+    struct VevoDownloadHandler;
 
     impl DownloadHandler {
         fn can_download(
@@ -368,7 +368,7 @@ wrap_download_handler! {
 
 // only called for alloy style browsers, ours are chrome style so drops still reach the managers
 wrap_drag_handler! {
-    struct KuteDragHandler;
+    struct VevoDragHandler;
 
     impl DragHandler {
         fn on_drag_enter(
@@ -383,7 +383,7 @@ wrap_drag_handler! {
 }
 
 wrap_display_handler! {
-    struct KuteDisplayHandler;
+    struct VevoDisplayHandler;
 
     impl DisplayHandler {
         fn on_console_message(
@@ -408,7 +408,7 @@ wrap_display_handler! {
 }
 
 wrap_life_span_handler! {
-    struct KuteLifeSpanHandler;
+    struct VevoLifeSpanHandler;
 
     impl LifeSpanHandler {
         fn on_before_popup(
@@ -476,43 +476,43 @@ wrap_life_span_handler! {
 }
 
 wrap_client! {
-    pub struct KuteClient;
+    pub struct VevoClient;
 
     impl Client {
         fn command_handler(&self) -> Option<CommandHandler> {
-            Some(KuteCommandHandler::new())
+            Some(VevoCommandHandler::new())
         }
 
         fn context_menu_handler(&self) -> Option<ContextMenuHandler> {
-            Some(KuteContextMenuHandler::new())
+            Some(VevoContextMenuHandler::new())
         }
 
         fn display_handler(&self) -> Option<DisplayHandler> {
-            Some(KuteDisplayHandler::new())
+            Some(VevoDisplayHandler::new())
         }
 
         fn download_handler(&self) -> Option<DownloadHandler> {
-            Some(KuteDownloadHandler::new())
+            Some(VevoDownloadHandler::new())
         }
 
         fn drag_handler(&self) -> Option<DragHandler> {
-            Some(KuteDragHandler::new())
+            Some(VevoDragHandler::new())
         }
 
         fn permission_handler(&self) -> Option<PermissionHandler> {
-            Some(KutePermissionHandler::new())
+            Some(VevoPermissionHandler::new())
         }
 
         fn keyboard_handler(&self) -> Option<KeyboardHandler> {
-            Some(KuteKeyboardHandler::new())
+            Some(VevoKeyboardHandler::new())
         }
 
         fn life_span_handler(&self) -> Option<LifeSpanHandler> {
-            Some(KuteLifeSpanHandler::new())
+            Some(VevoLifeSpanHandler::new())
         }
 
         fn request_handler(&self) -> Option<RequestHandler> {
-            Some(KuteRequestHandler::new())
+            Some(VevoRequestHandler::new())
         }
 
         fn on_process_message_received(
@@ -632,7 +632,7 @@ fn payload_str<'a>(payload: &'a serde_json::Value, key: &str) -> &'a str {
 static MANAGER_QUEUE: LazyLock<Option<mpsc::Sender<(i32, String)>>> = LazyLock::new(|| {
     let (sender, receiver) = mpsc::channel::<(i32, String)>();
     std::thread::Builder::new()
-        .name("kute-managers".into())
+        .name("vevo-managers".into())
         .spawn(move || {
             for (browser_id, message) in receiver {
                 let reply = match message.split_once('-') {
