@@ -1,6 +1,6 @@
 // VERSIONINFO helper for the exe and DLLs
 
-const COMPANY: &str = "NullDev e.U.";
+const COMPANY: &str = "Vevo";
 #[allow(dead_code)]
 const VFT_APP: &str = "0x1L";
 #[allow(dead_code)]
@@ -55,5 +55,5 @@ END
 
     let path = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("version.rc");
     std::fs::write(&path, resource).unwrap();
-    embed_resource::compile(&path, embed_resource::NONE);
+    let _ = embed_resource::compile(&path, embed_resource::NONE);
 }
