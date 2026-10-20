@@ -17,7 +17,18 @@ jobs:
       - run: bun install
       - name: Build Frontend and Rust Backend
         run: bun run build
+      - name: Prepare Distribution Folder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item "target/release/vevo-client.exe" "dist/"
+          Copy-Item "target/release/*.dll" "dist/" -ErrorAction SilentlyContinue
+          Copy-Item "target/release/*.bin" "dist/" -ErrorAction SilentlyContinue
+          Copy-Item "target/release/*.pak" "dist/" -ErrorAction SilentlyContinue
+          if (Test-Path "target/release/locales") {
+              Copy-Item -Recurse "target/release/locales" "dist/"
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: VevoClient-Windows
-          path: target/release/vevo-client.exe
+          path: dist/
