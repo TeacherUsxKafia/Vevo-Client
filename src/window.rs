@@ -284,7 +284,7 @@ pub fn attach_browser(browser: &Browser) {
 
     // not ours, chromium acting on its own (session restore etc)
     let Some((hwnd, window)) = root_hwnd(browser).and_then(|hwnd| window_from_hwnd(hwnd).map(|w| (hwnd, w))) else {
-        debug_print!("window: browser {} has no kute window, closing it", browser.identifier());
+        debug_print!("window: browser {} has no vevo window, closing it", browser.identifier());
         if let Some(host) = browser.host() {
             host.close_browser(1);
         }
@@ -458,7 +458,7 @@ fn create_browser(hwnd: HWND, url: &str) {
         height: rect.bottom - rect.top,
     };
     let window_info = WindowInfo::default().set_as_child(sys::HWND(hwnd.0.cast()), &bounds);
-    let mut client = handlers::KuteClient::new();
+    let mut client = handlers::VevoClient::new();
     let url = CefString::from(url);
     let mut request_context = app::request_context();
     if browser_host_create_browser(
@@ -525,7 +525,7 @@ pub fn create_popup_window(
         *window_info = window_info.clone().set_as_child(sys::HWND(hwnd.0.cast()), &bounds);
     }
     if let Some(client) = client {
-        *client = Some(handlers::KuteClient::new());
+        *client = Some(handlers::VevoClient::new());
     }
     if let Some(settings) = settings {
         *settings = app::browser_settings();
