@@ -5,8 +5,7 @@
   "version": "1.0.0",
   "description": "High performance krunker client built for Vevo clan",
   "scripts": {
-    "esbuild": "bun esbuild.config.mjs",
-    "build": "bun run esbuild && cargo build --workspace --release --features packaged,editor-ignore"
+    "build": "cargo build --workspace --release --features packaged,editor-ignore"
   },
   "dependencies": {
     "marked": "^18.0.9"
