@@ -38,17 +38,17 @@ pub fn HIWORD(l: usize) -> usize {
 
 #[cfg(windows)]
 pub fn settings_dir() -> path::PathBuf {
-    path::PathBuf::from(env::var("USERPROFILE").unwrap()).join("Documents").join("kute")
+    path::PathBuf::from(env::var("USERPROFILE").unwrap()).join("Documents").join("vevo")
 }
 
-// $XDG_CONFIG_HOME/kute, the linux counterpart of Documents\kute
+// $XDG_CONFIG_HOME/vevo, the linux counterpart of Documents\vevo
 #[cfg(target_os = "linux")]
 pub fn settings_dir() -> path::PathBuf {
     env::var_os("XDG_CONFIG_HOME")
         .filter(|dir| !dir.is_empty())
         .map(path::PathBuf::from)
         .unwrap_or_else(|| path::PathBuf::from(env::var_os("HOME").unwrap_or_default()).join(".config"))
-        .join("kute")
+        .join("vevo")
 }
 
 // refuses stuff like `https://krunker.io:pw@example.com/`
@@ -70,9 +70,9 @@ pub fn krunker_path(url: &str) -> Option<&str> {
     Some(path.split(['?', '#']).next().unwrap_or(""))
 }
 
-// KUTE_API_URL points a dev client at a local server, the page gets it through get-info
+// VEVO_API_URL points a dev client at a local server, the page gets it through get-info
 pub fn api_url() -> String {
-    env::var("KUTE_API_URL")
+    env::var("VEVO_API_URL")
         .map(|url| url.trim_end_matches('/').to_string())
         .unwrap_or_else(|_| crate::constants::API_URL.to_string())
 }
@@ -279,3 +279,4 @@ mod tests {
         assert_eq!(krunker_path("krunker.io/a.css"), None);
     }
 }
+

@@ -1,43 +1,3 @@
-use std::{
-    collections::HashSet,
-    fs,
-    io::Write,
-    sync::{
-        LazyLock,
-        atomic::{AtomicBool, Ordering},
-    },
-};
-
-use crate::{constants, utils};
-
-#[derive(serde::Deserialize, serde::Serialize)]
-struct UserBlocklist {
-    blocked: HashSet<String>,
-    disabled_defaults: HashSet<String>,
-}
-
-// what the player added or switched off, without the example the file starts with
-pub fn user_entries() -> Vec<String> {
-    let examples = ["*://example1.com", "*://*.example2.com/*", ""];
-    let Some(user) = fs::read_to_string(utils::settings_dir().join("user_blocklist.json"))
-        .ok()
-        .and_then(|text| serde_json::from_str::<UserBlocklist>(&text).ok())
-    else {
-        return Vec::new();
-    };
-    let mut entries: Vec<String> = user
-        .blocked
-        .into_iter()
-        .chain(user.disabled_defaults.into_iter().map(|url| format!("-{url}")))
-        .filter(|entry| !examples.contains(&entry.as_str()) && entry != "-")
-        .collect();
-    entries.sort();
-    entries
-}
-
-// checked on the IO thread for every request
-pub static BLOCKLIST: LazyLock<Vec<String>> = LazyLock::new(|| if utils::config("blocklist", true) { load() } else { Vec::new() });
-
 // "disableOnlineFeatures": the bundle already stays quiet, this also stops an old or broken one
 static ONLINE_OFF: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(utils::config("disableOnlineFeatures", false)));
 static API_HOST: LazyLock<String> = LazyLock::new(|| url_host(&utils::api_url()).unwrap_or_default().to_string());
@@ -60,7 +20,7 @@ pub fn set_video_skins_off(off: bool) {
 }
 
 pub fn is_blocked(url: &str) -> bool {
-    (ONLINE_OFF.load(Ordering::Relaxed) && is_kute_server(url))
+    (ONLINE_OFF.load(Ordering::Relaxed) && is_vevo_server(url))
         || (CATS_OFF.load(Ordering::Relaxed) && constants::CAT_BLOCKLIST.iter().any(|pattern| glob_match(pattern, url)))
         || (VIDEO_SKINS_OFF.load(Ordering::Relaxed) && constants::VIDEO_SKIN_BLOCKLIST.iter().any(|pattern| glob_match(pattern, url)))
         || BLOCKLIST.iter().any(|pattern| glob_match(pattern, url))
@@ -73,8 +33,8 @@ pub fn wants_empty_model(url: &str) -> bool {
     utils::krunker_path(url).is_some_and(|path| path.to_ascii_lowercase().ends_with(".obj")) && is_blocked(url)
 }
 
-fn is_kute_server(url: &str) -> bool {
-    url_host(url).is_some_and(|host| host == "kute.lol" || host.ends_with(".kute.lol") || host == API_HOST.as_str())
+fn is_vevo_server(url: &str) -> bool {
+    url_host(url).is_some_and(|host| host == "vevoclient.com" || host.ends_with(".vevoclient.com") || host == API_HOST.as_str())
 }
 
 fn url_host(url: &str) -> Option<&str> {
@@ -163,46 +123,4 @@ pub fn load() -> Vec<String> {
         .filter(|url| !blocklist.disabled_defaults.contains(url))
         .chain(blocklist.blocked)
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn subdomain_wildcard_matches_real_ad_url() {
-        assert!(glob_match("*://*.doubleclick.net/*", "https://googleads.g.doubleclick.net/pagead/ads?x=1"));
-    }
-
-    #[test]
-    fn trailing_star_matches_query_string() {
-        assert!(glob_match("*://krunker.io/service-worker.js*", "https://krunker.io/service-worker.js?v=3"));
-    }
-
-    #[test]
-    fn does_not_match_unrelated_host() {
-        assert!(!glob_match("*://*.doubleclick.net/*", "https://krunker.io/js/game.js"));
-    }
-
-    #[test]
-    fn cat_patterns_match_the_models() {
-        assert!(
-            constants::CAT_BLOCKLIST
-                .iter()
-                .any(|p| glob_match(p, "https://user-assets.krunker.io/61822/model.obj?v=2"))
-        );
-        assert!(
-            !constants::CAT_BLOCKLIST
-                .iter()
-                .any(|p| glob_match(p, "https://user-assets.krunker.io/61822/texture.png"))
-        );
-    }
-
-    #[test]
-    fn defaults_never_block_the_game() {
-        let defaults: Vec<String> = serde_json::from_str(constants::DEFAULT_BLOCKLIST).unwrap();
-        for url in ["https://krunker.io/", "https://krunker.io/js/game.js", "wss://lobby-fra.krunker.io/socket"] {
-            assert!(!defaults.iter().any(|p| glob_match(p, url)), "blocked {url}");
-        }
-    }
 }

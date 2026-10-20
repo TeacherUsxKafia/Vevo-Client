@@ -7,8 +7,8 @@ const MAX_FAILURES = 3;
 
 class Api {
     constructor(){
-        /** from the host, KUTE_API_URL overrides it for dev */
-        this.base = typeof kute.apiBase === "string" ? kute.apiBase : "https://kute.lol/api";
+        /** from the host, VEVO_API_URL overrides it for dev */
+        this.base = typeof kute.apiBase === "string" ? kute.apiBase : "https://vevoclient.com/api";
         /** @type {Promise<boolean> | null} */
         this.health = null;
         this.down = false;
