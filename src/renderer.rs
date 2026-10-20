@@ -41,7 +41,7 @@ fn bundle_source() -> String {
 fn eval_value(context: &V8Context, code: &str, name: &str) -> Result<V8Value, String> {
     let mut retval = None;
     let mut exception = None;
-    let script_url = CefString::from(format!("kute://{name}").as_str());
+    let script_url = CefString::from(format!("vevo://{name}").as_str());
     if context.eval(Some(&CefString::from(code)), Some(&script_url), 0, Some(&mut retval), Some(&mut exception)) == 0 {
         let message = exception
             .map(|e| format!("{} (line {})", utils::cef_to_string(&e.message()), e.line_number()))
@@ -59,8 +59,8 @@ fn eval(context: &V8Context, code: &str, name: &str) {
 }
 
 // bundle grabs the userscript registry from here, removed before page scripts run
-const REGISTRY_KEY: &str = "__kuteUserscripts";
-const CUSTOM_CSS_KEY: &str = "__kuteCustomCss";
+const REGISTRY_KEY: &str = "__vevoUserscripts";
+const CUSTOM_CSS_KEY: &str = "__vevoCustomCss";
 
 // runs before any page script. popups get theirs from handlers::on_after_created
 fn inject_scripts(frame: &Frame, context: &V8Context) {
@@ -151,7 +151,7 @@ fn compile_scripts(context: &V8Context, scripts: &[modules::userscripts::Script]
     for (index, script) in scripts.iter().enumerate() {
         let Some(item) = list.value_byindex(index as i32) else { continue };
         // wrapper on the first line keeps line numbers intact
-        let wrapped = format!("(function (module, exports) {{{}\n}})", script.source);
+        let wrapped = format!("(function (module, exports) {{\n{}\n}})", script.source);
         let (key, mut value) = match eval_value(context, &wrapped, &format!("scripts/{}", script.key)) {
             Ok(function) if function.is_function() != 0 => ("run", Some(function)),
             Ok(_) => continue,
@@ -290,7 +290,7 @@ fn dispatch(frame: &Frame, is_json: bool, payload: &str) {
 }
 
 wrap_render_process_handler! {
-    pub struct KuteRenderProcessHandler;
+    pub struct VevoRenderProcessHandler;
 
     impl RenderProcessHandler {
         fn on_context_created(&self, browser: Option<&mut Browser>, frame: Option<&mut Frame>, context: Option<&mut V8Context>) {
